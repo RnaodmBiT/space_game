@@ -338,12 +338,10 @@ macro(CheckX11)
     check_include_file(X11/extensions/shape.h HAVE_XSHAPE_H)
     check_include_files("X11/Xlib.h;X11/extensions/xf86vmode.h" HAVE_XF86VM_H)
     check_include_files("X11/Xlib.h;X11/Xproto.h;X11/extensions/Xext.h" HAVE_XEXT_H)
-    #find_file(HAVE_XEXT_H X11/Xlib.h X11/Xproto.h X11/extensions/Xext.h)
-    #MESSAGE(STATUS "Found ${HAVE_XEXT_H}")
 
     if(X11_LIB)
       if(NOT HAVE_XEXT_H)
-        message("Missing Xext.h, maybe you need to install the libxext-dev package?")
+        message_error("Missing Xext.h, maybe you need to install the libxext-dev package?")
       endif()
 
       set(HAVE_VIDEO_X11 TRUE)

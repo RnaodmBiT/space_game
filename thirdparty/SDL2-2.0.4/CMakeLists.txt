@@ -215,7 +215,7 @@ if(EMSCRIPTEN)
   # Emscripten/Javascript does not have assembly support, a dynamic library 
   # loading architecture, low-level CPU inspection or multithreading.
   set(OPT_DEF_ASM FALSE)
-#  set(SDL_SHARED_ENABLED_BY_DEFAULT OFF)
+  set(SDL_SHARED_ENABLED_BY_DEFAULT OFF)
   set(SDL_ATOMIC_ENABLED_BY_DEFAULT OFF)
   set(SDL_THREADS_ENABLED_BY_DEFAULT OFF)
   set(SDL_LOADSO_ENABLED_BY_DEFAULT OFF)
@@ -223,9 +223,9 @@ if(EMSCRIPTEN)
   set(SDL_DLOPEN_ENABLED_BY_DEFAULT OFF)
 endif()
 
-#if (NOT DEFINED SDL_SHARED_ENABLED_BY_DEFAULT)
-    #set(SDL_SHARED_ENABLED_BY_DEFAULT ON)
-#endif()
+if (NOT DEFINED SDL_SHARED_ENABLED_BY_DEFAULT)
+    set(SDL_SHARED_ENABLED_BY_DEFAULT ON)
+endif()
 
 set(SDL_SUBSYSTEMS
     Atomic Audio Video Render Events Joystick Haptic Power Threads Timers
@@ -296,8 +296,8 @@ set_option(VIDEO_VIVANTE       "Use Vivante EGL video driver" ${UNIX_SYS})
 
 # TODO: We should (should we?) respect cmake's ${BUILD_SHARED_LIBS} flag here
 # The options below are for compatibility to configure's default behaviour.
-#set(SDL_SHARED ${SDL_SHARED_ENABLED_BY_DEFAULT} CACHE BOOL "Build a shared version of the library")
-#set(SDL_STATIC ON CACHE BOOL "Build a static version of the library")
+set(SDL_SHARED ${SDL_SHARED_ENABLED_BY_DEFAULT} CACHE BOOL "Build a shared version of the library")
+set(SDL_STATIC ON CACHE BOOL "Build a static version of the library")
 
 # General source files
 file(GLOB SOURCE_FILES
