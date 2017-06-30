@@ -1,0 +1,199 @@
+#pragma once
+
+#include "GL/glew.h"
+#include <cassert>
+#include <string>
+
+namespace gl {
+
+    class shader {
+        GLuint s;
+        friend class program;
+    public:
+        enum type { vertex = GL_VERTEX_SHADER, fragment = GL_FRAGMENT_SHADER };
+
+        shader(type t) {
+            s = glCreateShader(t);
+        }
+
+        ~shader() {
+            glDeleteShader(s);
+        }
+
+        shader(shader&& move) {
+            std::swap(s, move.s);
+        }
+
+        void operator=(shader&& move) {
+            std::swap(s, move.s);
+        }
+
+        void set_source(const std::string& source) {
+            const char* str = source.c_str();
+            int len = source.size();
+            glShaderSource(s, 1, &str, &len);
+
+            glCompileShader(s);
+
+            int compiled;
+            glGetShaderiv(s, GL_COMPILE_STATUS, &compiled);
+
+            if (!compiled) {
+                int length;
+                glGetShaderiv(s, GL_INFO_LOG_LENGTH, &length);
+
+                std::string log(length, ' ');
+                glGetShaderInfoLog(s, length, &length, &log[0]);
+                printf("Shader log: %s\n", log.c_str());
+                assert(false && "Error compiling shader");
+            }
+        }
+    };
+
+    class uniform {
+        GLuint id;
+    public:
+        uniform(GLuint id) : id(id) { }
+
+        void set(const mat4& m) {
+            glUniformMatrix4fv(id, 1, true, m.data.data());
+        }
+    };
+
+    class program {
+        GLuint p;
+    public:
+        program() {
+            p = glCreateProgram();
+        }
+
+        ~program() {
+            glDeleteProgram(p);
+        }
+
+        program(program&& move) {
+            std::swap(p, move.p);
+        }
+
+        void operator=(program&& move) {
+            std::swap(p, move.p);
+        }
+
+        void attach(const shader& s) {
+            glAttachShader(p, s.s);
+        }
+
+        /* Attach two shaders and link them together. */
+        void build(const shader& a, const shader& b) {
+            attach(a);
+            attach(b);
+            link();
+        }
+
+        void link() {
+            glLinkProgram(p);
+
+            int linked;
+            glGetProgramiv(p, GL_LINK_STATUS, &linked);
+
+            if (!linked) {
+                int length;
+                glGetProgramiv(p, GL_INFO_LOG_LENGTH, &length);
+
+                std::string log(length, ' ');
+                glGetShaderInfoLog(p, length, &length, &log[0]);
+                printf("Program log: %s\n", log.c_str());
+                assert(false && "Error linking program");
+            }
+        }
+
+        void use() {
+            glUseProgram(p);
+        }
+
+        uniform get(const std::string& name) {
+            return uniform(glGetUniformLocation(p, name.c_str()));
+        }
+    };
+
+    class buffer {
+    public:
+        enum type { array = GL_ARRAY_BUFFER, element = GL_ELEMENT_ARRAY_BUFFER };
+    private:
+        GLuint b;
+        type t;
+    public:
+
+        buffer(type t = array) : t(t) {
+            glGenBuffers(1, &b);
+        }
+
+        ~buffer() {
+            glDeleteBuffers(1, &b);
+        }
+
+        buffer(buffer&& move) {
+            std::swap(b, move.b);
+        }
+
+        void operator=(buffer&& move) {
+            std::swap(b, move.b);
+        }
+
+        void bind() {
+            glBindBuffer(t, b);
+        }
+
+        template <typename T>
+        void set_data(const T* data, int count) {
+            bind();
+            glBufferData(t, sizeof(T) * count, data, GL_STATIC_DRAW);
+        }
+
+        template <typename T>
+        void set_data(const std::vector<T>& data) {
+            set_data(data.data(), data.size());
+        }
+    };
+
+    class array {
+        GLuint a;
+        int attributes;
+    public:
+        array() : attributes(0) {
+            glGenVertexArrays(1, &a);
+        }
+
+        ~array() {
+            glDeleteVertexArrays(1, &a);
+        }
+
+        array(array&& move) {
+            std::swap(a, move.a);
+        }
+
+        void operator=(array&& move) {
+            std::swap(a, move.a);
+        }
+
+        void bind() {
+            glBindVertexArray(a);
+        }
+
+        void attach(buffer& b, int components, GLenum data_type, bool normalized) {
+            bind();
+
+            glEnableVertexAttribArray(attributes);
+
+            b.bind();
+            glVertexAttribPointer(attributes, components, data_type, normalized, 0, 0);
+
+            attributes++;
+        }
+
+        void draw(int vertices, GLenum primitive_type = GL_TRIANGLES) {
+            bind();
+            glDrawArrays(primitive_type, 0, vertices);
+        }
+    };
+}

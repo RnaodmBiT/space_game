@@ -24,9 +24,13 @@ public:
         child->parent = nullptr;
     }
 
-    node* find(std::function<bool(node*)> fn) {
+    node* find(std::function<bool(node*)> fn) const {
         auto it = std::find_if(children.begin(), children.end(), fn);
         return it == children.end() ? nullptr : *it;
+    }
+
+    node* get_parent() const {
+        return parent;
     }
 
     virtual void update(float dt) {
