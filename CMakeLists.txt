@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.0 FATAL_ERROR)
 
 project(space)
 set(CMAKE_CXX_STANDARD 11)
+add_compile_options(-bigobj)
 
 find_package(OpenGL REQUIRED)
 

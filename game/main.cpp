@@ -1,26 +1,38 @@
 #include <cstdio>
 #include <SDL.h>
+#include <GL\glew.h>
 #include <string>
 #include <fstream>
 #include <streambuf>
-#include <v7/v7.h>
+#include <vector>
+#include <chaiscript/chaiscript.hpp>
+#include <maths.hpp>
+#include "node.hpp"
 
 #define WINDOW_TITLE        "Space"
+
+using namespace chaiscript;
+
+class camera : public node {
+public:
+    vec3 position, direction, up;
+
+    void draw() {
+        mat4 transform = perspective(pi / 4, 1280.f / 720.f, 1.f, 100.f) * look_at(position, position + direction, up);
+
+        glClearColor(0.39f, 0.58f, 0.93f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        node::draw();
+    }
+};
+
 
 /* game_options holds all of the current settings applied to the game.
  */
 struct game_options {
     int width, height; /* The current operating resolution. */
 };
-
-
-v7_err println(v7* ctx, v7_val_t* result) {
-    v7_val_t val = v7_arg(ctx, 0);
-    const char* str = v7_get_string(ctx, &val, nullptr);
-    printf("%s\n", str);
-    return V7_OK;
-}
-
 
 /* The main entry point into the game.
 */
@@ -40,31 +52,8 @@ int main(int argc, char** argv) {
 
     SDL_Init(SDL_INIT_EVERYTHING);
 
-    v7* ctx = v7_create();
-    v7_set_method(ctx, v7_get_global(ctx), "print", println);
-
-    v7_val_t result;
-    v7_err err = v7_exec(ctx, "print('Hello World')", &result);
-    err = v7_exec_file(ctx, "test.js", &result);
-
-    v7_val_t function = v7_get(ctx, v7_get_global(ctx), "test", ~0);
-    err = v7_apply(ctx, function, V7_UNDEFINED, V7_UNDEFINED, &result);
-
-    int is = v7_is_object(result);
-
-    prop_iter_ctx iter_ctx;
-    v7_val_t name, val;
-    v7_prop_attr_t attrs;
-    
-    v7_init_prop_iter_ctx(ctx, result, &iter_ctx);
-    while (v7_next_prop(ctx, &iter_ctx, &name, &val, &attrs)) {
-        if (v7_is_string(val)) {
-            printf("string: %s = %s", v7_get_string(ctx, &name, nullptr), v7_get_string(ctx, &val, nullptr));
-        }
-    }
-    v7_destruct_prop_iter_ctx(ctx, &iter_ctx);
-
-    v7_destroy(ctx);
+    ChaiScript chai;
+    chai.use("test.chai");
 
     window = SDL_CreateWindow(WINDOW_TITLE,
                               SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
@@ -73,6 +62,8 @@ int main(int argc, char** argv) {
                               SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL);
 
     context = SDL_GL_CreateContext(window);
+
+    camera root;
 
     running = true;
     while (running) {
@@ -88,8 +79,10 @@ int main(int argc, char** argv) {
         }
 
         /* TODO: Update the game logic here. */
+        root.update(1.0f);
 
         /* TODO: Render the game to the screen here. */
+        root.draw();
 
         SDL_GL_SwapWindow(window);
     }
