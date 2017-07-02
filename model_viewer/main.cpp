@@ -41,9 +41,9 @@ struct mesh {
         std::swap(parts, move.parts);
     }
 
-    void draw(gl::uniform& diffuse) const {
+    void draw(gl::uniform& albedo) const {
         for (const part& p : parts) {
-            diffuse.set(p.diffuse);
+            albedo.set(p.diffuse);
 
             p.object.draw(p.vertices);
         }
@@ -160,8 +160,6 @@ int main(int argc, char** argv) {
     viewport.direction = { 5.0f, -2.0f, 3.0f };
     viewport.up = { 0.0f, 1.0f, 0.0f };
 
-    shader.get("transform").set(viewport.transform());
-    
     float time = 0;
 
     running = true;
@@ -170,6 +168,21 @@ int main(int argc, char** argv) {
             switch (event.type) {
             case SDL_QUIT:
                 running = false;
+                break;
+
+            case SDL_KEYDOWN:
+                if (event.key.keysym.sym == SDLK_F5) {
+                    // Hacky refresh here
+                    vertex = gl::shader(gl::shader::vertex);
+                    fragment = gl::shader(gl::shader::fragment);
+
+                    vertex.set_source(file::read("shaders/object.vert"));
+                    fragment.set_source(file::read("shaders/object.frag"));
+
+                    shader = gl::program();
+                    shader.build(vertex, fragment);
+                    shader.use();
+                }
                 break;
 
             default:
@@ -183,10 +196,12 @@ int main(int argc, char** argv) {
         /* TODO: Render the game to the screen here. */
         root.draw();
 
+        shader.get("transform").set(viewport.transform());
         shader.get("world").set(rotate(time, { 0, 1, 0 }));
+        shader.get("camera_position").set(viewport.position);
         time += 0.01f;
 
-        model.draw(shader.get("diffuse"));
+        model.draw(shader.get("albedo"));
 
         SDL_GL_SwapWindow(window);
     }
