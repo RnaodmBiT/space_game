@@ -58,6 +58,22 @@ namespace gl {
         void set(const mat4& m) {
             glUniformMatrix4fv(id, 1, true, m.data.data());
         }
+
+        void set(float x) {
+            glUniform1f(id, x);
+        }
+
+        void set(const vec2& v) {
+            glUniform2f(id, v.x, v.y);
+        }
+
+        void set(const vec3& v) {
+            glUniform3f(id, v.x, v.y, v.z);
+        }
+
+        void set(const vec4& v) {
+            glUniform4f(id, v.x, v.y, v.z, v.w);
+        }
     };
 
     class program {
@@ -152,7 +168,7 @@ namespace gl {
 
         template <typename T>
         void set_data(const std::vector<T>& data) {
-            set_data(data.data(), data.size());
+            set_data(data.data(), (int)data.size());
         }
     };
 
@@ -176,7 +192,7 @@ namespace gl {
             std::swap(a, move.a);
         }
 
-        void bind() {
+        void bind() const {
             glBindVertexArray(a);
         }
 
@@ -191,7 +207,7 @@ namespace gl {
             attributes++;
         }
 
-        void draw(int vertices, GLenum primitive_type = GL_TRIANGLES) {
+        void draw(int vertices, GLenum primitive_type = GL_TRIANGLES) const {
             bind();
             glDrawArrays(primitive_type, 0, vertices);
         }

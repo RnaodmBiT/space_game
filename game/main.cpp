@@ -6,30 +6,99 @@
 #include <streambuf>
 #include <vector>
 #include <chaiscript/chaiscript.hpp>
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
 #include <maths.hpp>
 #include <rendering.hpp>
 #include <io.hpp>
-#include "node.hpp"
+#include <nodes/camera.hpp>
 
 #define WINDOW_TITLE        "Space"
 
 using namespace chaiscript;
 
-class camera : public node {
-public:
-    vec3 position, direction, up;
 
-    mat4 transform() const {
-        return perspective(pi / 4, 1280.f / 720.f, 1.f, 100.f) * look_at(position, position + direction, up);
+
+struct mesh {
+    struct part {
+        std::vector<gl::buffer> buffers;
+        gl::array object;
+        int vertices;
+
+
+        vec3 diffuse;
+    };
+
+    std::vector<part> parts;
+
+    mesh() { }
+
+    mesh(mesh&& move) {
+        std::swap(parts, move.parts);
     }
 
-    void draw() {
-        glClearColor(0.39f, 0.58f, 0.93f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+    void operator=(mesh&& move) {
+        std::swap(parts, move.parts);
+    }
 
-        node::draw();
+    void draw(gl::uniform& diffuse) const {
+        for (const part& p : parts) {
+            diffuse.set(p.diffuse);
+
+            p.object.draw(p.vertices);
+        }
     }
 };
+
+mesh load_mesh(const std::string& filename) {
+    Assimp::Importer importer;
+    const aiScene* scene = importer.ReadFile(filename.c_str(), aiProcess_Triangulate | aiProcess_JoinIdenticalVertices | aiProcess_ConvertToLeftHanded | aiProcess_ImproveCacheLocality);
+    assert(scene && "Error loading mesh from file");
+    // assert(scene->mNumMeshes == 1 && "A mesh file must only contain one mesh");
+
+    mesh mesh;
+
+    for (int m = 0; m < scene->mNumMeshes; ++m) {
+        std::vector<vec3> verts, normals;
+        gl::buffer vertex_buffer, normal_buffer;
+
+        const aiMesh* obj = scene->mMeshes[m];
+
+        for (int i = 0; i < obj->mNumFaces; ++i) {
+            for (int j = 0; j < 3; ++j) {
+                int v = obj->mFaces[i].mIndices[j];
+                aiVector3D p = obj->mVertices[v];
+                aiVector3D n = obj->mNormals[v];
+                verts.push_back(vec3{ p.x, p.y, p.z });
+                normals.push_back(vec3{ n.x, n.y, n.z });
+            }
+        }
+
+        vertex_buffer.set_data(verts);
+        normal_buffer.set_data(normals);
+
+        mesh::part p;
+        p.vertices = verts.size();
+        p.object.attach(vertex_buffer, 3, GL_FLOAT, false);
+        p.object.attach(normal_buffer, 3, GL_FLOAT, false);
+        p.buffers.push_back(std::move(vertex_buffer));
+        p.buffers.push_back(std::move(normal_buffer));
+
+        const aiMaterial* material = scene->mMaterials[obj->mMaterialIndex];
+        for (int i = 0; i < material->mNumProperties; ++i) {
+            printf("Prop: %s\n", material->mProperties[i]->mKey.C_Str());
+        }
+
+        aiColor3D color;
+        material->Get(AI_MATKEY_COLOR_DIFFUSE, color);
+        p.diffuse = { color.r, color.g, color.b };
+
+        mesh.parts.push_back(std::move(p));
+    }
+
+    return mesh;
+}
 
 
 /* game_options holds all of the current settings applied to the game.
@@ -59,6 +128,9 @@ int main(int argc, char** argv) {
     ChaiScript chai;
     chai.use("test.chai");
 
+    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
+    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
+
     window = SDL_CreateWindow(WINDOW_TITLE,
                               SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                               options.width,
@@ -78,17 +150,8 @@ int main(int argc, char** argv) {
     shader.build(vertex, fragment);
     shader.use();
 
-    std::vector<vec3> verts = {
-        { 0.f, 0.f, 0.f },
-        { 0.f, 0.f, 5.f },
-        { 0.f, 1.f, 0.f }
-    };
-
-    gl::buffer vertex_buffer;
-    vertex_buffer.set_data(verts);
-
-    gl::array object;
-    object.attach(vertex_buffer, 3, GL_FLOAT, false);
+    glEnable(GL_DEPTH_TEST);
+    mesh model = load_mesh("models/cube.dae");
 
     node root;
     camera viewport;
@@ -99,7 +162,8 @@ int main(int argc, char** argv) {
     viewport.up = { 0.0f, 1.0f, 0.0f };
 
     shader.get("transform").set(viewport.transform());
-    shader.get("world").set(mat4());
+    
+    float time = 0;
 
     running = true;
     while (running) {
@@ -120,7 +184,10 @@ int main(int argc, char** argv) {
         /* TODO: Render the game to the screen here. */
         root.draw();
 
-        object.draw(verts.size());
+        shader.get("world").set(rotate(time, { 0, 1, 0 }));
+        time += 0.01f;
+
+        model.draw(shader.get("diffuse"));
 
         SDL_GL_SwapWindow(window);
     }
