@@ -1,6 +1,6 @@
 #include <cstdio>
 #include <SDL.h>
-#include <GL\glew.h>
+#include <GL/glew.h>
 #include <string>
 #include <fstream>
 #include <streambuf>
@@ -127,8 +127,12 @@ int main(int argc, char** argv) {
     ChaiScript chai;
     chai.use("test.chai");
 
+    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
     SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
     SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+
 
     window = SDL_CreateWindow(WINDOW_TITLE,
                               SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
@@ -182,6 +186,12 @@ int main(int argc, char** argv) {
                     shader = gl::program();
                     shader.build(vertex, fragment);
                     shader.use();
+                }
+                break;
+
+            case SDL_WINDOWEVENT:
+                if (event.window.event == SDL_WINDOWEVENT_RESIZED) {
+                    // TODO: Implement this
                 }
                 break;
 

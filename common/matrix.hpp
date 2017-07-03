@@ -41,7 +41,7 @@ public:
 
     void operator*=(const matrix& other) {
         static_assert(Rows == Cols, "Can only multiply-assign two matrices of the same dimensions.");
-        Matrix result;
+        matrix result;
         for (int row = 0; row < Rows; ++row) {
             for (int col = 0; col < Cols; ++col) {
                 result(row, col) = T(0);

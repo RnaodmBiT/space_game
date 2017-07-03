@@ -1,6 +1,6 @@
 #include <cstdio>
 #include <SDL.h>
-#include <GL\glew.h>
+#include <GL/glew.h>
 #include <string>
 #include <fstream>
 #include <streambuf>

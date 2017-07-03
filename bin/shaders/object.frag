@@ -1,6 +1,6 @@
 #version 330
 
-out vec4 output;
+out vec4 color_out;
 
 in vec3 position, normal;
 
@@ -34,10 +34,10 @@ void main() {
     float light_power = 20;
 
     vec3 eye = normalize(camera_position - position);
-    vec3 half = normalize(normalize(light - position) + eye);
+    vec3 h = normalize(normalize(light - position) + eye);
 
     float n_dot_l = dot(normal, normalize(light - position));
-    float n_dot_h = dot(normal, half);
+    float n_dot_h = dot(normal, h);
     float n_dot_v = dot(normal, eye);
 
     float intensity = light_power / pow(length(light - position), 2);
@@ -48,8 +48,8 @@ void main() {
     vec3 diffuse = albedo / pi;
     vec3 specular = vec3(1, 1, 1) * brdf(n_dot_h, n_dot_v, n_dot_l, roughness, f0);
 
-    float f = fresnel(dot(eye, half), f0);
+    float f = fresnel(dot(eye, h), f0);
 
     vec3 color = intensity * n_dot_l * mix(diffuse, specular * vec3(1, 1, 1), f);
-    output = vec4(color, 1);
+    color_out = vec4(color, 1);
 }

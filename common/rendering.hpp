@@ -53,7 +53,7 @@ namespace gl {
     class uniform {
         GLuint id;
     public:
-        uniform(GLuint id) : id(id) { }
+        uniform(GLuint id = -1) : id(id) { }
 
         void set(const mat4& m) {
             glUniformMatrix4fv(id, 1, true, m.data.data());
@@ -78,6 +78,7 @@ namespace gl {
 
     class program {
         GLuint p;
+        std::map<std::string, uniform> uniforms;
     public:
         program() {
             p = glCreateProgram();
@@ -127,8 +128,11 @@ namespace gl {
             glUseProgram(p);
         }
 
-        uniform get(const std::string& name) {
-            return uniform(glGetUniformLocation(p, name.c_str()));
+        uniform& get(const std::string& name) {
+            if (!uniforms.count(name)) {
+                uniforms[name] = uniform(glGetUniformLocation(p, name.c_str()));
+            }
+            return uniforms[name];
         }
     };
 
