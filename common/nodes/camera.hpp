@@ -6,9 +6,13 @@
 class camera : public node {
 public:
     vec3 position, direction, up;
+    float fov, aspect;
+    float near_plane, far_plane;
+
+    camera() : fov(pi / 4), aspect(1), near_plane(1), far_plane(100) { }
 
     mat4 transform() const {
-        return perspective(pi / 4, 1280.f / 720.f, 1.f, 100.f) * look_at(position, position + direction, up);
+        return perspective(fov, aspect, near_plane, far_plane) * look_at(position, position + direction, up);
     }
 
     void draw() {
@@ -18,3 +22,4 @@ public:
         node::draw();
     }
 };
+

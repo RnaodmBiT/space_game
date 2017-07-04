@@ -3,6 +3,7 @@
 #include "GL/glew.h"
 #include <cassert>
 #include <string>
+#include <cstdio>
 
 namespace gl {
 
@@ -17,10 +18,12 @@ namespace gl {
         }
 
         ~shader() {
-            glDeleteShader(s);
+            if (s >= 0) {
+                glDeleteShader(s);
+            }
         }
 
-        shader(shader&& move) {
+        shader(shader&& move) : s(-1) {
             std::swap(s, move.s);
         }
 
@@ -85,10 +88,12 @@ namespace gl {
         }
 
         ~program() {
-            glDeleteProgram(p);
+            if (p >= 0) {
+                glDeleteProgram(p);
+            }
         }
 
-        program(program&& move) {
+        program(program&& move) : p(-1) {
             std::swap(p, move.p);
         }
 
@@ -149,10 +154,12 @@ namespace gl {
         }
 
         ~buffer() {
-            glDeleteBuffers(1, &b);
+            if (b >= 0) {
+                glDeleteBuffers(1, &b);
+            }
         }
 
-        buffer(buffer&& move) {
+        buffer(buffer&& move) : b(-1) {
             std::swap(b, move.b);
         }
 
@@ -185,10 +192,12 @@ namespace gl {
         }
 
         ~array() {
-            glDeleteVertexArrays(1, &a);
+            if (a >= 0) {
+                glDeleteVertexArrays(1, &a);
+            }
         }
 
-        array(array&& move) {
+        array(array&& move) : a(-1) {
             std::swap(a, move.a);
         }
 

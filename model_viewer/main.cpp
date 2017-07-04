@@ -191,7 +191,8 @@ int main(int argc, char** argv) {
 
             case SDL_WINDOWEVENT:
                 if (event.window.event == SDL_WINDOWEVENT_RESIZED) {
-                    // TODO: Implement this
+                    glViewport(0, 0, event.window.data1, event.window.data2);
+                    viewport.aspect = float(event.window.data1) / float(event.window.data2);
                 }
                 break;
 
