@@ -4,8 +4,74 @@
 #include <cassert>
 #include <string>
 #include <cstdio>
+#include <stb_image.h>
+#include <map>
+#include <vector>
+#include "maths.hpp"
 
 namespace gl {
+
+    class cube_map {
+        GLuint t;
+
+        void load_side(GLenum side_target, const std::string& filename) {
+            bind();
+
+            int w, h, channels;
+            uint8_t* image = stbi_load(filename.c_str(), &w, &h, &channels, 4);
+            assert(image && "Error loading cube map image");
+
+            glTexImage2D(side_target, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
+
+            stbi_image_free(image);
+        }
+
+    public:
+        cube_map() {
+            glGenTextures(1, &t);
+        }
+
+        ~cube_map() {
+            if (t >= 0) {
+                glDeleteTextures(1, &t);
+            }
+        }
+
+        cube_map(cube_map&& move) : t(-1) {
+            std::swap(t, move.t);
+        }
+
+        void operator=(cube_map&& move) {
+            std::swap(t, move.t);
+        }
+
+        void bind() const {
+            glBindTexture(GL_TEXTURE_CUBE_MAP, t);
+        }
+
+        void load_cube(const std::string& front,
+                       const std::string& back,
+                       const std::string& top,
+                       const std::string& bottom,
+                       const std::string& left,
+                       const std::string& right) {
+
+            load_side(GL_TEXTURE_CUBE_MAP_NEGATIVE_Z, front);
+            load_side(GL_TEXTURE_CUBE_MAP_POSITIVE_Z, back);
+            load_side(GL_TEXTURE_CUBE_MAP_POSITIVE_Y, top);
+            load_side(GL_TEXTURE_CUBE_MAP_NEGATIVE_Y, bottom);
+            load_side(GL_TEXTURE_CUBE_MAP_NEGATIVE_X, left);
+            load_side(GL_TEXTURE_CUBE_MAP_POSITIVE_X, right);
+
+            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+            glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
+        }
+    };
 
     class shader {
         GLuint s;
@@ -76,6 +142,12 @@ namespace gl {
 
         void set(const vec4& v) {
             glUniform4f(id, v.x, v.y, v.z, v.w);
+        }
+
+        void set(const cube_map& cube) {
+            glUniform1i(id, 0); // TODO: Work out how to deal with more than one texture
+            glActiveTexture(GL_TEXTURE0);
+            cube.bind();
         }
     };
 
@@ -225,4 +297,6 @@ namespace gl {
             glDrawArrays(primitive_type, 0, vertices);
         }
     };
+
 }
+

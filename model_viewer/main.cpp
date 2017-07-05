@@ -27,6 +27,8 @@ struct mesh {
 
 
         vec3 diffuse;
+        float roughness;
+        float metalness;
     };
 
     std::vector<part> parts;
@@ -156,6 +158,11 @@ int main(int argc, char** argv) {
     glEnable(GL_DEPTH_TEST);
     mesh model = load_mesh("models/cube.dae");
 
+    gl::cube_map cube;
+    cube.load_cube("front.bmp", "back.bmp",
+                   "top.bmp", "bottom.bmp",
+                   "left.bmp", "right.bmp");
+
     node root;
     camera viewport;
     root.add(&viewport);
@@ -207,10 +214,12 @@ int main(int argc, char** argv) {
         /* TODO: Render the game to the screen here. */
         root.draw();
 
-        shader.get("transform").set(viewport.transform());
-        shader.get("world").set(rotate(time, { 0, 1, 0 }));
+        shader.get("transform").set(viewport.projection());
+        shader.get("world").set(scale(5.0f, 5.0f, 5.0f) * rotate(time, { 0, 1, 0 }));
         shader.get("camera_position").set(viewport.position);
         time += 0.01f;
+
+        shader.get("cube").set(cube);
 
         model.draw(shader.get("albedo"));
 

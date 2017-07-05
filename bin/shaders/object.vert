@@ -5,11 +5,14 @@ layout(location = 1) in vec3 v_normal;
 
 uniform mat4 transform, world;
 
+out vec3 in_position;
 out vec3 position, normal;
 
 void main() {
     vec4 v = world * vec4(v_position, 1.0f);
     gl_Position = transform * v;
+
+    in_position = v_position;
     position = v.xyz;
     normal = (world * vec4(v_normal, 0.0f)).xyz;
 }

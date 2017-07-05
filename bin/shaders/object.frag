@@ -2,10 +2,12 @@
 
 out vec4 color_out;
 
+in vec3 in_position;
 in vec3 position, normal;
 
 uniform vec3 camera_position;
 uniform vec3 albedo;
+uniform samplerCube cube;
 
 const float pi = 3.14159;
 
@@ -42,14 +44,16 @@ void main() {
 
     float intensity = light_power / pow(length(light - position), 2);
 
-    float f0 = 0.1;
+    float f0 = 0.05;
     float roughness = 0.9;
 
-    vec3 diffuse = albedo / pi;
+    vec3 diffuse = texture(cube, in_position).xyz / pi;
     vec3 specular = vec3(1, 1, 1) * brdf(n_dot_h, n_dot_v, n_dot_l, roughness, f0);
 
     float f = fresnel(dot(eye, h), f0);
 
     vec3 color = intensity * n_dot_l * mix(diffuse, specular * vec3(1, 1, 1), f);
     color_out = vec4(color, 1);
+
+    color_out = vec4(diffuse * pi, 1);
 }

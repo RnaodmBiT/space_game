@@ -12,7 +12,11 @@ public:
     camera() : fov(pi / 4), aspect(1), near_plane(1), far_plane(100) { }
 
     mat4 transform() const {
-        return perspective(fov, aspect, near_plane, far_plane) * look_at(position, position + direction, up);
+        return projection() * look_at(position, position + direction, up);
+    }
+
+    mat4 projection() const {
+        return perspective(fov, aspect, near_plane, far_plane);
     }
 
     void draw() {

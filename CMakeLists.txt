@@ -16,7 +16,7 @@ add_subdirectory(thirdparty/glew)
 add_subdirectory(thirdparty/assimp-3.3.1)
 
 include_directories(common
-                    thirdparty/stb-master
+                    thirdparty/stb
                     thirdparty/SDL2-2.0.4/include
                     thirdparty/glew
                     thirdparty/assimp-3.3.1/include)
