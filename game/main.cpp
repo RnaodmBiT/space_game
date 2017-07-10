@@ -20,37 +20,6 @@ using namespace chaiscript;
 
 
 
-struct mesh {
-    struct part {
-        std::vector<gl::buffer> buffers;
-        gl::array object;
-        int vertices;
-
-
-        vec3 diffuse;
-    };
-
-    std::vector<part> parts;
-
-    mesh() { }
-
-    mesh(mesh&& move) {
-        std::swap(parts, move.parts);
-    }
-
-    void operator=(mesh&& move) {
-        std::swap(parts, move.parts);
-    }
-
-    void draw(gl::uniform& diffuse) const {
-        for (const part& p : parts) {
-            diffuse.set(p.diffuse);
-
-            p.object.draw(p.vertices);
-        }
-    }
-};
-
 mesh load_mesh(const std::string& filename) {
     Assimp::Importer importer;
     const aiScene* scene = importer.ReadFile(filename.c_str(), aiProcess_Triangulate | aiProcess_JoinIdenticalVertices | aiProcess_ConvertToLeftHanded | aiProcess_ImproveCacheLocality);
@@ -92,7 +61,9 @@ mesh load_mesh(const std::string& filename) {
 
         aiColor3D color;
         material->Get(AI_MATKEY_COLOR_DIFFUSE, color);
-        p.diffuse = { color.r, color.g, color.b };
+        p.albedo = { color.r, color.g, color.b };
+        p.metalness = 0.0f;
+        p.roughness = 0.4f;
 
         mesh.parts.push_back(std::move(p));
     }
@@ -161,8 +132,6 @@ int main(int argc, char** argv) {
     viewport.direction = { 5.0f, -2.0f, 3.0f };
     viewport.up = { 0.0f, 1.0f, 0.0f };
 
-    shader.get("transform").set(viewport.transform());
-    
     float time = 0;
 
     running = true;
@@ -184,10 +153,9 @@ int main(int argc, char** argv) {
         /* TODO: Render the game to the screen here. */
         root.draw();
 
-        shader.get("world").set(rotate(time, { 0, 1, 0 }));
         time += 0.01f;
 
-        model.draw(shader.get("diffuse"));
+        //model.draw(shader.get("diffuse"));
 
         SDL_GL_SwapWindow(window);
     }

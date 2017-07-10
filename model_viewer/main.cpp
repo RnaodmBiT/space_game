@@ -6,100 +6,13 @@
 #include <streambuf>
 #include <vector>
 #include <chaiscript/chaiscript.hpp>
-#include <assimp/Importer.hpp>
-#include <assimp/scene.h>
-#include <assimp/postprocess.h>
 #include <maths.hpp>
 #include <rendering.hpp>
 #include <io.hpp>
 #include <nodes/camera.hpp>
+#include <nodes/skybox.hpp>
 
 #define WINDOW_TITLE        "Model Viewer"
-
-using namespace chaiscript;
-
-
-struct mesh {
-    struct part {
-        std::vector<gl::buffer> buffers;
-        gl::array object;
-        int vertices;
-
-
-        vec3 diffuse;
-        float roughness;
-        float metalness;
-    };
-
-    std::vector<part> parts;
-
-    mesh() { }
-
-    mesh(mesh&& move) {
-        std::swap(parts, move.parts);
-    }
-
-    void operator=(mesh&& move) {
-        std::swap(parts, move.parts);
-    }
-
-    void draw(gl::uniform& albedo) const {
-        for (const part& p : parts) {
-            albedo.set(p.diffuse);
-
-            p.object.draw(p.vertices);
-        }
-    }
-};
-
-mesh load_mesh(const std::string& filename) {
-    Assimp::Importer importer;
-    const aiScene* scene = importer.ReadFile(filename.c_str(), aiProcess_Triangulate | aiProcess_JoinIdenticalVertices | aiProcess_ConvertToLeftHanded | aiProcess_ImproveCacheLocality);
-    assert(scene && "Error loading mesh from file");
-    // assert(scene->mNumMeshes == 1 && "A mesh file must only contain one mesh");
-
-    mesh mesh;
-
-    for (int m = 0; m < scene->mNumMeshes; ++m) {
-        std::vector<vec3> verts, normals;
-        gl::buffer vertex_buffer, normal_buffer;
-
-        const aiMesh* obj = scene->mMeshes[m];
-
-        for (int i = 0; i < obj->mNumFaces; ++i) {
-            for (int j = 0; j < 3; ++j) {
-                int v = obj->mFaces[i].mIndices[j];
-                aiVector3D p = obj->mVertices[v];
-                aiVector3D n = obj->mNormals[v];
-                verts.push_back(vec3{ p.x, p.y, p.z });
-                normals.push_back(vec3{ n.x, n.y, n.z });
-            }
-        }
-
-        vertex_buffer.set_data(verts);
-        normal_buffer.set_data(normals);
-
-        mesh::part p;
-        p.vertices = verts.size();
-        p.object.attach(vertex_buffer, 3, GL_FLOAT, false);
-        p.object.attach(normal_buffer, 3, GL_FLOAT, false);
-        p.buffers.push_back(std::move(vertex_buffer));
-        p.buffers.push_back(std::move(normal_buffer));
-
-        const aiMaterial* material = scene->mMaterials[obj->mMaterialIndex];
-        for (int i = 0; i < material->mNumProperties; ++i) {
-            printf("Prop: %s\n", material->mProperties[i]->mKey.C_Str());
-        }
-
-        aiColor3D color;
-        material->Get(AI_MATKEY_COLOR_DIFFUSE, color);
-        p.diffuse = { color.r, color.g, color.b };
-
-        mesh.parts.push_back(std::move(p));
-    }
-
-    return mesh;
-}
 
 
 /* game_options holds all of the current settings applied to the game.
@@ -126,9 +39,6 @@ int main(int argc, char** argv) {
 
     SDL_Init(SDL_INIT_EVERYTHING);
 
-    ChaiScript chai;
-    chai.use("test.chai");
-
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
     SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
     SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
@@ -147,29 +57,22 @@ int main(int argc, char** argv) {
     glewExperimental = true;
     assert(glewInit() == GLEW_OK && "Error initializing GLEW");
 
-    gl::shader vertex(gl::shader::vertex), fragment(gl::shader::fragment);
-    vertex.set_source(file::read("shaders/object.vert"));
-    fragment.set_source(file::read("shaders/object.frag"));
-
-    gl::program shader;
-    shader.build(vertex, fragment);
-    shader.use();
-
     glEnable(GL_DEPTH_TEST);
-    mesh model = load_mesh("models/cube.dae");
 
-    gl::cube_map cube;
-    cube.load_cube("front.bmp", "back.bmp",
-                   "top.bmp", "bottom.bmp",
-                   "left.bmp", "right.bmp");
 
     node root;
     camera viewport;
     root.add(&viewport);
 
     viewport.position = { -5.0f, 2.0f, -3.0f };
-    viewport.direction = { 5.0f, -2.0f, 3.0f };
+    viewport.direction = { 5.0f, 0.0f, 3.0f };
     viewport.up = { 0.0f, 1.0f, 0.0f };
+
+    skybox sky;
+    sky.load_box("models/cube.dae");
+    sky.load_cube_map("front.bmp", "back.bmp", "top.bmp", "bottom.bmp", "left.bmp", "right.bmp");
+    sky.load_shader("shaders/skybox.vert", "shaders/skybox.frag");
+    viewport.add(&sky);
 
     float time = 0;
 
@@ -179,21 +82,6 @@ int main(int argc, char** argv) {
             switch (event.type) {
             case SDL_QUIT:
                 running = false;
-                break;
-
-            case SDL_KEYDOWN:
-                if (event.key.keysym.sym == SDLK_F5) {
-                    // Hacky refresh here
-                    vertex = gl::shader(gl::shader::vertex);
-                    fragment = gl::shader(gl::shader::fragment);
-
-                    vertex.set_source(file::read("shaders/object.vert"));
-                    fragment.set_source(file::read("shaders/object.frag"));
-
-                    shader = gl::program();
-                    shader.build(vertex, fragment);
-                    shader.use();
-                }
                 break;
 
             case SDL_WINDOWEVENT:
@@ -208,20 +96,16 @@ int main(int argc, char** argv) {
             }
         }
 
+        time += 0.01f;
+        viewport.direction.x = cos(time);
+        viewport.direction.z = sin(time);
+
         /* TODO: Update the game logic here. */
         root.update(1.0f);
 
         /* TODO: Render the game to the screen here. */
         root.draw();
 
-        shader.get("transform").set(viewport.projection());
-        shader.get("world").set(scale(5.0f, 5.0f, 5.0f) * rotate(time, { 0, 1, 0 }));
-        shader.get("camera_position").set(viewport.position);
-        time += 0.01f;
-
-        shader.get("cube").set(cube);
-
-        model.draw(shader.get("albedo"));
 
         SDL_GL_SwapWindow(window);
     }

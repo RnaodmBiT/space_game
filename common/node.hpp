@@ -3,12 +3,17 @@
 #include <cassert>
 #include <algorithm>
 #include <functional>
+#include "maths.hpp"
 
 class node {
     std::vector<node*> children;
     node* parent;
 
 public:
+
+    struct render_state {
+        mat4 projection, view, world;
+    };
 
     node() : parent(nullptr) { }
 
@@ -39,9 +44,9 @@ public:
         }
     }
 
-    virtual void draw() {
+    virtual void draw(render_state rs = render_state()) {
         for (node* n : children) {
-            n->draw();
+            n->draw(rs);
         }
     }
 };

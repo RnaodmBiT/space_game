@@ -149,6 +149,11 @@ namespace gl {
             glActiveTexture(GL_TEXTURE0);
             cube.bind();
         }
+
+        template <typename T>
+        void operator=(const T& value) {
+            set(value);
+        }
     };
 
     class program {
@@ -210,6 +215,10 @@ namespace gl {
                 uniforms[name] = uniform(glGetUniformLocation(p, name.c_str()));
             }
             return uniforms[name];
+        }
+
+        uniform& operator[](const std::string& name) {
+            return get(name);
         }
     };
 
@@ -299,4 +308,60 @@ namespace gl {
     };
 
 }
+
+// A mesh is a renderable object, usually imported from a file
+struct mesh {
+    struct part {
+        // graphical model data
+        std::vector<gl::buffer> buffers;
+        gl::array object;
+        int vertices;
+
+        // material properties
+        vec3 albedo;
+        float roughness;
+        float metalness;
+
+        // A helper function to quickly add a buffer of data to this part
+        template <typename T>
+        void add_buffer(const std::vector<T>& data, int components, GLenum type, bool normalized) {
+            gl::buffer b;
+            b.set_data(data);
+            object.attach(b, components, type, normalized);
+            buffers.push_back(std::move(b));
+        }
+    };
+
+    std::vector<part> parts;
+
+    // create a new empty mesh object
+    mesh() { }
+
+    // create a new mesh object from a file
+    mesh(const std::string& filename) {
+        load_file(filename);
+    }
+
+    mesh(mesh&& move) {
+        std::swap(parts, move.parts);
+    }
+
+    void operator=(mesh&& move) {
+        std::swap(parts, move.parts);
+    }
+
+    // Load a model from a file
+    void load_file(const std::string& filename);
+
+    void draw(gl::uniform& albedo, gl::uniform& roughness, gl::uniform& metalness) const {
+        for (const part& p : parts) {
+            albedo = p.albedo;
+            roughness = p.roughness;
+            metalness = p.metalness;
+
+            p.object.draw(p.vertices);
+        }
+    }
+};
+
 
