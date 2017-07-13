@@ -29,19 +29,19 @@ public:
 
     void draw(render_state rs) {
 
-        rs.world = mat4();
-        rs.view(0, 3) = rs.view(1, 3) = rs.view(2, 3) = 0.0f; // Remove the movement of the camera.
+        mat4 v = rs.view;
+        v(0, 3) = v(1, 3) = v(2, 3) = 0.0f; // Remove the movement of the camera.
 
         glDisable(GL_DEPTH_TEST); // TODO: Some kind of state class to tidy this up.
 
         shader.use();
 
-        shader["transform"] = rs.projection * rs.view;
-        shader["world"] = rs.world;
+        shader["transform"] = rs.projection * v;
+        shader["world"] = mat4();
         shader["cube"] = cube;
         box.draw(shader["albedo"], shader["roughness"], shader["metalness"]);
 
-        node::draw();
+        node::draw(rs);
 
         glEnable(GL_DEPTH_TEST);
     }

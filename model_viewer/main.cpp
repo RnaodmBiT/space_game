@@ -15,6 +15,23 @@
 #define WINDOW_TITLE        "Model Viewer"
 
 
+class model : public node {
+    mesh& m;
+    gl::program& s;
+public:
+    model(mesh& m, gl::program& s) : m(m), s(s) { }
+
+    void draw(render_state rs) {
+        s.use();
+        s["transform"] = rs.projection * rs.view;
+        s["world"] = rs.world;
+        m.draw(s["albedo"], s["roughness"], s["metalness"]);
+
+        node::draw(rs);
+    }
+};
+
+
 /* game_options holds all of the current settings applied to the game.
  */
 struct game_options {
@@ -64,7 +81,7 @@ int main(int argc, char** argv) {
     camera viewport;
     root.add(&viewport);
 
-    viewport.position = { -5.0f, 2.0f, -3.0f };
+    viewport.position = { -5.0f, 3.0f, -3.0f };
     viewport.direction = { 5.0f, 1.0f, 3.0f };
     viewport.up = { 0.0f, 1.0f, 0.0f };
 
@@ -72,6 +89,18 @@ int main(int argc, char** argv) {
     sky.load_cube_map("front.bmp", "back.bmp", "top.bmp", "bottom.bmp", "left.bmp", "right.bmp");
     sky.load_shader("shaders/skybox.vert", "shaders/skybox.frag");
     viewport.add(&sky);
+
+    mesh m;
+    m.load_file("models/cube.dae");
+
+    gl::program s;
+    gl::shader vertex(gl::shader::vertex), fragment(gl::shader::fragment);
+    vertex.set_source(file::read("shaders/object.vert"));
+    fragment.set_source(file::read("shaders/object.frag"));
+    s.build(vertex, fragment);
+
+    model object(m, s);
+    viewport.add(&object);
 
     float time = 0;
 
@@ -96,8 +125,12 @@ int main(int argc, char** argv) {
         }
 
         time += 0.01f;
-        viewport.direction.x = cos(time);
-        viewport.direction.z = sin(time);
+        viewport.position.x = 10 * cos(time);
+        viewport.position.z = 10 * sin(time);
+        viewport.direction = -viewport.position;
+
+        s.use();
+        s["camera_position"] = viewport.position;
 
         /* TODO: Update the game logic here. */
         root.update(1.0f);

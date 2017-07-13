@@ -32,11 +32,12 @@ float brdf(float n_dot_h, float n_dot_v, float n_dot_l, float roughness, float f
 }
 
 void main() {
-    vec3 light = vec3(-2.0, 2.0, 2.0);
+    vec3 light = vec3(2.0, 0.5, -2.0);
     float light_power = 20;
 
     vec3 eye = normalize(camera_position - position);
     vec3 h = normalize(normalize(light - position) + eye);
+    vec3 env = reflect(-eye, normal);
 
     float n_dot_l = dot(normal, normalize(light - position));
     float n_dot_h = dot(normal, h);
@@ -44,16 +45,16 @@ void main() {
 
     float intensity = light_power / pow(length(light - position), 2);
 
-    float f0 = 0.05;
-    float roughness = 0.9;
+    float f0 = 0.5;
+    float roughness = 0.5;
 
-    vec3 diffuse = texture(cube, in_position).xyz / pi;
+    vec3 diffuse = albedo / pi;
     vec3 specular = vec3(1, 1, 1) * brdf(n_dot_h, n_dot_v, n_dot_l, roughness, f0);
+    vec3 ibl = texture(cube, env, roughness * 5).xyz;
 
     float f = fresnel(dot(eye, h), f0);
 
-    vec3 color = intensity * n_dot_l * mix(diffuse, specular * vec3(1, 1, 1), f);
+    vec3 color = intensity * n_dot_l * mix(diffuse, specular, f) + ibl * f;
     color_out = vec4(color, 1);
-
-    color_out = vec4(diffuse * pi, 1);
+    // color_out = vec4(diffuse, 1);
 }
