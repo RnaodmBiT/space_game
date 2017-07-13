@@ -46,4 +46,62 @@ void mesh::load_file(const std::string& filename) {
     }
 }
 
+void mesh::generate_part(const std::vector<vec3>& vertices, const std::vector<vec3>& normals, const std::vector<std::pair<int, int>>& indices, const vec3& albedo, float roughness, float metalness) {
+    part p;
+
+    std::vector<vec3> v, n;
+
+    for (const auto& i : indices) {
+        v.push_back(vertices[i.first]);
+        n.push_back(normals[i.second]);
+    }
+
+    p.vertices = indices.size();
+    p.add_buffer(v, 3, GL_FLOAT, false);
+    p.add_buffer(n, 3, GL_FLOAT, false);
+
+    p.albedo = albedo;
+    p.metalness = metalness;
+    p.roughness = roughness;
+
+    parts.push_back(std::move(p));
+}
+
+
+mesh mesh::cube() {
+    mesh m;
+
+    std::vector<vec3> verts = {
+        { -1, -1, -1 },
+        { 1, -1, -1 },
+        { -1, -1, 1 },
+        { 1, -1, 1 },
+        { -1, 1, -1 },
+        { 1, 1, -1 },
+        { -1, 1, 1 },
+        { 1, 1, 1 }
+    };
+
+    std::vector<vec3> norms = {
+        { 1, 0, 0 },
+        { -1, 0, 0 },
+        { 0, 1, 0 },
+        { 0, -1, 0 },
+        { 0, 0, 1 },
+        { 0, 0, -1 }
+    };
+
+    std::vector<std::pair<int, int>> inds = {
+        { 1, 0 }, { 3, 0 }, { 5, 0 }, { 3, 0 },{ 7, 0 }, { 5, 0 },
+        { 0, 1 }, { 2, 1 }, { 4, 1 }, { 2, 1 },{ 6, 1 }, { 4, 1 },
+        { 4, 2 }, { 5, 2 }, { 6, 2 }, { 5, 2 },{ 7, 2 }, { 6, 2 },
+        { 0, 3 }, { 1, 3 }, { 2, 3 }, { 1, 3 },{ 3, 3 }, { 2, 3 },
+        { 2, 4 }, { 3, 4 }, { 6, 4 }, { 3, 4 },{ 7, 4 }, { 6, 4 },
+        { 0, 5 }, { 1, 5 }, { 4, 5 }, { 1, 5 },{ 5, 5 }, { 4, 5 },
+    };
+
+    m.generate_part(verts, norms, inds, { 1.0f, 1.0f, 1.0f }, 0.4f, 0.0f);
+
+    return m;
+}
 

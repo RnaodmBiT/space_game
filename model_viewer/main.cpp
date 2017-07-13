@@ -65,11 +65,10 @@ int main(int argc, char** argv) {
     root.add(&viewport);
 
     viewport.position = { -5.0f, 2.0f, -3.0f };
-    viewport.direction = { 5.0f, 0.0f, 3.0f };
+    viewport.direction = { 5.0f, 1.0f, 3.0f };
     viewport.up = { 0.0f, 1.0f, 0.0f };
 
     skybox sky;
-    sky.load_box("models/cube.dae");
     sky.load_cube_map("front.bmp", "back.bmp", "top.bmp", "bottom.bmp", "left.bmp", "right.bmp");
     sky.load_shader("shaders/skybox.vert", "shaders/skybox.frag");
     viewport.add(&sky);

@@ -11,12 +11,10 @@ class skybox : public node {
 
 public:
 
-    skybox() { }
-
-    void load_box(const std::string& filename) {
-        box.load_file(filename);
+    skybox() {
+        box = mesh::cube();
     }
-    
+
     void load_shader(const std::string& vertex_shader, const std::string& fragment_shader) {
         gl::shader vertex(gl::shader::vertex), fragment(gl::shader::fragment);
         vertex.set_source(file::read(vertex_shader));

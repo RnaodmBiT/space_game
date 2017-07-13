@@ -353,6 +353,9 @@ struct mesh {
     // Load a model from a file
     void load_file(const std::string& filename);
 
+    // Generate a model from a list of vertices, a list of normals, and a list of indices. Each index is a pair into the list of vertices and list of normals. The indices are read in threes to generate trigangles.
+    void generate_part(const std::vector<vec3>& vertices, const std::vector<vec3>& normals, const std::vector<std::pair<int, int>>& indices, const vec3& albedo, float roughness, float metalness);
+
     void draw(gl::uniform& albedo, gl::uniform& roughness, gl::uniform& metalness) const {
         for (const part& p : parts) {
             albedo = p.albedo;
@@ -362,6 +365,9 @@ struct mesh {
             p.object.draw(p.vertices);
         }
     }
+
+    // Common geometry shapes
+    static mesh cube();
 };
 
 
